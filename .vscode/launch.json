@@ -9,9 +9,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceRoot}/bin/Debug/netcoreapp2.0/LetChatBot.dll",
+            "program": "${workspaceRoot}/src/LetChatBot/bin/Debug/netcoreapp2.0/LetChatBot.dll",
             "args": [],
-            "cwd": "${workspaceRoot}",
+            "cwd": "${workspaceRoot}/src/LetChatBot",
             "stopAtEntry": false,
             "console": "internalConsole"
         }
