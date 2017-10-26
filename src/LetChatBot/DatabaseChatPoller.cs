@@ -44,6 +44,9 @@ namespace LetChatBot
                 var args = new DatabaseMessageReceivedArgs(m);
                 DatabaseMessageReceived?.Invoke(this, args);
             }
+
+            messages.ForEach(m => m.TelegramProcessed = true);
+            _context.SaveChanges();
         }
 
         private void RunningLoop()
