@@ -6,7 +6,8 @@ namespace LetChatBot
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            var instance = new Startup();
+            instance.Start();
         }
     }
 }
