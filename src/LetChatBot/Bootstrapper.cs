@@ -14,9 +14,13 @@ public class Bootstrapper
             options.UseMySql(config.GetConnectionString("Forum"));
         }, ServiceLifetime.Transient);
 
-        services.AddTransient<ForumContextFactory>();
-        services.AddTransient<DatabaseChatPoller>();
-        services.AddTransient<LetChatBot>();
+        services.AddScoped<ForumContextFactory>();
+        services.AddScoped<DatabaseChatPoller>();
+        services.AddScoped<LetChatBot>();
+        services.AddScoped<ForumMessageStore>();
+        services.AddScoped<ForumUserStore>();
+
+        
     }
 
     public void Startup(IServiceProvider serviceProvider)

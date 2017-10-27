@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LetChatBot.Model
 {
@@ -14,8 +15,11 @@ namespace LetChatBot.Model
         public string BbcodeBitfield { get; set; }
         public string BbcodeUid { get; set; }
         public bool BbcodeOptions { get; set; }
-        public int Time { get; set; }
+        public long Time { get; set; }
         public int? Processed { get; set; }
         public bool TelegramProcessed { get; set; }
+
+        [NotMapped]
+        public string FilteredText {get;set;}
     }
 }

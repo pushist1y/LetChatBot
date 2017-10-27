@@ -9,7 +9,9 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.0.0" />    
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.0.0" />    
     <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="2.0.0" />    
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.0.0" />    
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="2.0.0" />
+    
     <PackageReference Include="Telegram.Bot" Version="13.2.2-rc" />    
 
     

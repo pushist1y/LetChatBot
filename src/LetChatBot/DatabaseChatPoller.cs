@@ -6,38 +6,20 @@ namespace LetChatBot
 {
     public class DatabaseChatPoller
     {
-        public static TimeSpan ContextRefreshInterval = TimeSpan.FromMinutes(5);
-        private readonly ForumContextFactory _contextFactory;
-        private DateTime _lastRefresh;
-        private ForumContext _context;
+        private readonly ForumMessageStore _messageStore;
         private Thread _runningThread;
 
         private bool _isRunning = false;
-        public DatabaseChatPoller(ForumContextFactory contextFactory)
+        public DatabaseChatPoller(ForumMessageStore messageStore)
         {
-            _contextFactory = contextFactory;
-            _lastRefresh = DateTime.Now;
-            _context = _contextFactory.NewContext();
+            _messageStore = messageStore;
         }
 
         public event EventHandler<DatabaseMessageReceivedArgs> DatabaseMessageReceived;
 
-        private void RefreshContext()
-        {
-            if(DateTime.Now - _lastRefresh > ContextRefreshInterval)
-            {
-                _context = _contextFactory.NewContext();
-            }
-        }
-
         private void GetMessages()
         {
-            RefreshContext();
-
-            var messages = _context.PhpbbChat
-                            .Where(m => !m.TelegramProcessed)
-                            .OrderBy(m => m.MessageId)
-                            .ToList();
+            var messages = _messageStore.UnprocessedMessages;
             
             foreach(var m in messages)
             {
@@ -45,8 +27,7 @@ namespace LetChatBot
                 DatabaseMessageReceived?.Invoke(this, args);
             }
 
-            messages.ForEach(m => m.TelegramProcessed = true);
-            _context.SaveChanges();
+            _messageStore.UpdateMessages(messages);
         }
 
         private void RunningLoop()
