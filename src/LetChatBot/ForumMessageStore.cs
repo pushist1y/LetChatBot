@@ -14,7 +14,7 @@ namespace LetChatBot
         }
 
         public IQueryable<PhpbbChat> UnprocessedMessages => _context.PhpbbChat
-                            .Where(m => !m.TelegramProcessed)
+                            .Where(m => m.TelegramProcessed <= 0)
                             .OrderBy(m => m.MessageId);
 
         public void UpdateMessages(IEnumerable<PhpbbChat> messages)

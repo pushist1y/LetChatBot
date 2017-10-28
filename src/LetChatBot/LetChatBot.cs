@@ -56,8 +56,8 @@ namespace LetChatBot
                 forumMessage.UserColour = user.UserColour;
                 forumMessage.BbcodeBitfield = string.Empty;
                 forumMessage.BbcodeUid = string.Empty;
-                forumMessage.BbcodeOptions = true;
-                forumMessage.TelegramProcessed = true;
+                forumMessage.BbcodeOptions = 7;
+                forumMessage.TelegramProcessed = 1;
                 
                 forumMessage.Time = (new DateTimeOffset(DateTime.Now)).ToUnixTimeSeconds();
                 forumMessage.ChatId = 1;
@@ -83,7 +83,7 @@ namespace LetChatBot
 
             var text = $"{e.Message.Username}: {e.Message.FilteredText}";
             var res = _client.SendTextMessageAsync(_defaultGroupId, text).Result;
-            e.Message.TelegramProcessed = true;
+            e.Message.TelegramProcessed = 1;
 
         }
 

@@ -16,7 +16,7 @@ namespace LetChatBot.Model
         public string UsernameClean { get; set; }
         public string UserPassword { get; set; }
         public int UserPasschg { get; set; }
-        public sbyte UserPassConvert { get; set; }
+        public byte UserPassConvert { get; set; }
         public string UserEmail { get; set; }
         public long UserEmailHash { get; set; }
         public string UserBirthday { get; set; }
@@ -34,7 +34,7 @@ namespace LetChatBot.Model
         public int UserPosts { get; set; }
         public string UserLang { get; set; }
         public decimal UserTimezone { get; set; }
-        public sbyte UserDst { get; set; }
+        public byte UserDst { get; set; }
         public string UserDateformat { get; set; }
         public int UserStyle { get; set; }
         public int UserRank { get; set; }
@@ -42,7 +42,7 @@ namespace LetChatBot.Model
         public int UserNewPrivmsg { get; set; }
         public int UserUnreadPrivmsg { get; set; }
         public int UserLastPrivmsg { get; set; }
-        public sbyte UserMessageRules { get; set; }
+        public byte UserMessageRules { get; set; }
         public int UserFullFolder { get; set; }
         public int UserEmailtime { get; set; }
         public short UserTopicShowDays { get; set; }
@@ -51,13 +51,13 @@ namespace LetChatBot.Model
         public short UserPostShowDays { get; set; }
         public string UserPostSortbyType { get; set; }
         public string UserPostSortbyDir { get; set; }
-        public sbyte UserNotify { get; set; }
-        public sbyte UserNotifyPm { get; set; }
+        public byte UserNotify { get; set; }
+        public byte UserNotifyPm { get; set; }
         public sbyte UserNotifyType { get; set; }
-        public sbyte UserAllowPm { get; set; }
-        public sbyte UserAllowViewonline { get; set; }
-        public sbyte UserAllowViewemail { get; set; }
-        public sbyte UserAllowMassemail { get; set; }
+        public byte UserAllowPm { get; set; }
+        public byte UserAllowViewonline { get; set; }
+        public byte UserAllowViewemail { get; set; }
+        public byte UserAllowMassemail { get; set; }
         public int UserOptions { get; set; }
         public string UserAvatar { get; set; }
         public sbyte UserAvatarType { get; set; }
@@ -78,7 +78,7 @@ namespace LetChatBot.Model
         public string UserActkey { get; set; }
         public string UserNewpasswd { get; set; }
         public string UserFormSalt { get; set; }
-        public sbyte UserNew { get; set; }
+        public byte UserNew { get; set; }
         public sbyte UserReminded { get; set; }
         public int UserRemindedTime { get; set; }
         public long? UserTelegramId { get; set; }

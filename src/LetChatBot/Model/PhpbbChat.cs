@@ -14,10 +14,10 @@ namespace LetChatBot.Model
         public string Message { get; set; }
         public string BbcodeBitfield { get; set; }
         public string BbcodeUid { get; set; }
-        public bool BbcodeOptions { get; set; }
+        public byte BbcodeOptions { get; set; }
         public long Time { get; set; }
         public int? Processed { get; set; }
-        public bool TelegramProcessed { get; set; }
+        public sbyte TelegramProcessed { get; set; }
 
         [NotMapped]
         public string FilteredText {get;set;}
