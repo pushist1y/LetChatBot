@@ -13,6 +13,12 @@ namespace LetChatBot
             _context = context;
         }
 
+        public bool UpdateUser(PhpbbUsers user)
+        {
+            _context.Update(user);
+            return _context.SaveChanges() > 0;
+        }
+
         public IQueryable<PhpbbUsers> Users => _context.PhpbbUsers;
 
     }
