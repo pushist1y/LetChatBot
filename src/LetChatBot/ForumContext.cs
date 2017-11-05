@@ -605,8 +605,7 @@ namespace LetChatBot
 
                 entity.Property(e => e.MessageId)
                     .HasColumnName("message_id")
-                    .HasColumnType("int(11) unsigned")
-                    .ValueGeneratedNever();
+                    .HasColumnType("int(11) unsigned");
 
                 entity.Property(e => e.BbcodeBitfield)
                     .IsRequired()

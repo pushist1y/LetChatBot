@@ -56,26 +56,26 @@ namespace LetChatBot
 
         private void TelegramToForum(string telegramName, long telegramId, string text)
         {
-            text = text.ConvertToForum();
-            var user = _context.PhpbbUsers.AsNoTracking().FirstOrDefault(u => u.UserTelegramId == telegramId);
-            if (user == null)
-            {
-                user = _context.PhpbbUsers.AsNoTracking().First(u => u.UserId == _forumBotUserId);
-                text = $"T({telegramName}): {text}";
-            }
+                text = text.ConvertToForum();
+                var user = _context.PhpbbUsers.AsNoTracking().FirstOrDefault(u => u.UserTelegramId == telegramId);
+                if (user == null)
+                {
+                    user = _context.PhpbbUsers.AsNoTracking().First(u => u.UserId == _forumBotUserId);
+                    text = $"T({telegramName}): {text}";
+                }
 
-            SendToForum(user, text);
+                SendToForum(user, text);
         }
 
         private void SendToForum(string text, int forumUserId = -1)
         {
-            if(forumUserId < 0)
+            if (forumUserId < 0)
             {
                 forumUserId = _forumBotUserId;
             }
 
             var user = _context.PhpbbUsers.AsNoTracking().FirstOrDefault(u => u.UserId == forumUserId);
-            if(user == null)
+            if (user == null)
             {
                 user = _context.PhpbbUsers.AsNoTracking().First(u => u.UserId == _forumBotUserId);
             }

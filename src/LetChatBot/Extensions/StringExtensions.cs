@@ -39,11 +39,27 @@ namespace LetChatBot
                     .HtmlDecode();
         }
 
+        public static string ConvertUrlToA(this string input)
+        {
+            var matches = Regex.Matches(input, @"((http|ftp|https):\/\/(www.)?([\w\-_]+(\.[\w\-_]+)+([\w\-\.,@?^=%&amp;:/~\+#]*[\w\-\@?^=%&amp;/~\+#])?))");
+
+            return Regex.Replace(input,
+                @"((http|ftp|https):\/\/(www.)?([\w\-_]+(\.[\w\-_]+)+([\w\-\.,@?^=%&amp;:/~\+#]*[\w\-\@?^=%&amp;/~\+#])?))",
+                "<a target='_blank' href='$1'>$4</a>");
+        }
+
+        public static string StripEmoji(this string input)
+        {
+            return Regex.Replace(input, @"[^\u0000-\u007F]+", "");
+        }
+
 
         public static string ConvertToForum(this string input)
         {
             return input
-                    .HtmlEncode();
+                    .HtmlEncode()
+//                    .StripEmoji()
+                    .ConvertUrlToA();
         }
 
     }

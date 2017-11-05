@@ -13,11 +13,13 @@ namespace LetChatBot
             services.AddDbContext<ForumContext>((options) =>
             {
                 options.UseMySql(config.GetConnectionString("Forum"));
-            });
+                options.EnableSensitiveDataLogging();
+            }, ServiceLifetime.Transient);
 
             services.AddScoped<DatabaseChatPoller>();
             services.AddScoped<LetChatBot>();
             services.AddScoped<TelegramToForumUserLinker>();
+            services.AddScoped<TelegramMessageProcessor>();
         }
 
         public void Startup(IServiceProvider serviceProvider)
