@@ -22,6 +22,8 @@ namespace LetChatBot
         private readonly string _staticPath;
         private readonly string _staticUrl;
         private readonly string _stickersFolder;
+        private readonly string _imagesFolder;
+        private readonly string _filesFolder;
 
         public TelegramMessageProcessor(ForumContext context, IConfigurationRoot config)
         {
@@ -34,6 +36,8 @@ namespace LetChatBot
             _staticPath = config["StaticFolderPath"];
             _staticUrl = config["StaticDataUrl"];
             _stickersFolder = config["StickersFolder"];
+            _imagesFolder = config["ImagesFolder"];
+            _filesFolder = config["FilesFolder"];
 
         }
 
@@ -46,27 +50,31 @@ namespace LetChatBot
             _client = client;
         }
 
-        public void ProcessMessage(Message message)
+        private void ProcessGroupMessage(Message message)
         {
-            if (message.Type == MessageType.TextMessage)
+            switch(message.Type)
             {
-                var match = Regex.Match(message.Text, "^(?:\\/([a-z0-9_]+)(@[a-z0-9_]+)?(?:\\s+(.*))?)$");
-                if (match.Success)
-                {
-                    var command = match.Groups[1].Value;
-                    var owner = match.Groups[2].Value;
-                    var commandParams = match.Groups[3].Value;
-                    //telegram command
-                    return;
-                }
-                if (message.Chat.Id == _defaultGroupId)
-                {
-                    TelegramToForum(message.From.FullName(), message.From.Id, message.Text);
-                }
+                case MessageType.TextMessage:
+                    ProcessGroupTextMessage(message);
+                    break;
+                case MessageType.StickerMessage:
+                    ProcessGroupStickerMessage(message);
+                    break;
+                case MessageType.PhotoMessage:
+                    ProcessGroupImageMessage(message);
+                    break;
+                
             }
-            else if (message.Type == MessageType.StickerMessage)
-            {
-                var webpPath = Path.Combine(_staticPath, _stickersFolder, message.Sticker.FileId + ".webp");
+        }
+
+        private void ProcessGroupTextMessage(Message message)
+        {
+            TelegramToForum(message.From.FullName(), message.From.Id, message.Text);
+        }
+
+        private void ProcessGroupStickerMessage(Message message)
+        {
+            var webpPath = Path.Combine(_staticPath, _stickersFolder, message.Sticker.FileId + ".webp");
                 var pngPath = Regex.Replace(webpPath, @"\.webp$", ".png");
                 if (!System.IO.File.Exists(pngPath))
                 {
@@ -85,6 +93,51 @@ namespace LetChatBot
                 var text = $"(Стикер) {stickerUrl.AbsoluteUri}";
 
                 TelegramToForum(message.From.FullName(), message.From.Id, text);
+        }
+
+        private void ProcessGroupImageMessage(Message message)
+        {
+            var imageInfo = message.Photo.Last();
+            var filePath = Path.Combine(_staticPath, _imagesFolder, imageInfo.FileId + ".jpg");
+                if (!System.IO.File.Exists(filePath))
+                {
+                    var fileInfo = _client.GetFileAsync(imageInfo.FileId).Result;
+                    
+                    using (var jpgFile = System.IO.File.Create(filePath))
+                    {
+                        fileInfo.FileStream.CopyTo(jpgFile);
+                    }
+                }
+
+                var imageUrl = new Uri(_staticUrl).Append(_imagesFolder).Append(imageInfo.FileId + ".jpg");
+
+                var text = $"( {imageUrl.AbsoluteUri} )";
+                if(!string.IsNullOrEmpty(message.Caption))
+                {
+                    text = $"{message.Caption}: {text}";
+                }
+
+                TelegramToForum(message.From.FullName(), message.From.Id, text);
+        }
+
+        public void ProcessMessage(Message message)
+        {
+            if (message.Type == MessageType.TextMessage)
+            {
+                var match = Regex.Match(message.Text, "^(?:\\/([a-z0-9_]+)(@[a-z0-9_]+)?(?:\\s+(.*))?)$");
+                if (match.Success)
+                {
+                    var command = match.Groups[1].Value;
+                    var owner = match.Groups[2].Value;
+                    var commandParams = match.Groups[3].Value;
+                    //telegram command
+                    return;
+                }
+            }
+
+            if (message.Chat.Id == _defaultGroupId)
+            {
+                ProcessGroupMessage(message);
             }
         }
 
