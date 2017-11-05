@@ -29,18 +29,18 @@ namespace LetChatBot
 
         public void ProcessMessage(Message message)
         {
-            if(message.Type == MessageType.TextMessage)
+            if (message.Type == MessageType.TextMessage)
             {
                 var match = Regex.Match(message.Text, "^(?:\\/([a-z0-9_]+)(@[a-z0-9_]+)?(?:\\s+(.*))?)$");
-                if(match.Success)
+                if (match.Success)
                 {
                     var command = match.Groups[1].Value;
                     var owner = match.Groups[2].Value;
                     var commandParams = match.Groups[3].Value;
-                    //command
+                    //telegram command
                     return;
                 }
-                if(message.Chat.Id == _defaultGroupId)
+                if (message.Chat.Id == _defaultGroupId)
                 {
                     SendToForum(message.From.FullName(), message.From.Id, message.Text);
                 }
@@ -51,27 +51,26 @@ namespace LetChatBot
         {
             text = text.ConvertToForum();
             var user = _userStore.Users.FirstOrDefault(u => u.UserTelegramId == telegramId);
-            if(user == null)
+            if (user == null)
             {
                 user = _userStore.Users.First(u => u.UserId == _forumBotUserId);
                 text = $"T({telegramName}): {text}";
-
             }
 
-                var forumMessage = new PhpbbChat();
-                forumMessage.Message = text;
-                forumMessage.UserId = user.UserId;
-                forumMessage.Username = user.Username;
-                forumMessage.UserColour = user.UserColour;
-                forumMessage.BbcodeBitfield = string.Empty;
-                forumMessage.BbcodeUid = string.Empty;
-                forumMessage.BbcodeOptions = 7;
-                forumMessage.TelegramProcessed = 1;
-                
-                forumMessage.Time = (new DateTimeOffset(DateTime.Now)).ToUnixTimeSeconds();
-                forumMessage.ChatId = 1;
+            var forumMessage = new PhpbbChat();
+            forumMessage.Message = text;
+            forumMessage.UserId = user.UserId;
+            forumMessage.Username = user.Username;
+            forumMessage.UserColour = user.UserColour;
+            forumMessage.BbcodeBitfield = string.Empty;
+            forumMessage.BbcodeUid = string.Empty;
+            forumMessage.BbcodeOptions = 7;
+            forumMessage.TelegramProcessed = 1;
 
-                _messageStore.AddMessage(forumMessage);
+            forumMessage.Time = (new DateTimeOffset(DateTime.Now)).ToUnixTimeSeconds();
+            forumMessage.ChatId = 1;
+
+            _messageStore.AddMessage(forumMessage);
         }
     }
 
@@ -88,8 +87,8 @@ namespace LetChatBot
             _config = config;
         }
 
-        
-       
+
+
         public TelegramMessageProcessor GetProcessor(TelegramBotClient client)
         {
             return new TelegramMessageProcessor(client, _userStore, _messageStore, _config);

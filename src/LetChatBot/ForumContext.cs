@@ -71,6 +71,7 @@ namespace LetChatBot
         public virtual DbSet<PhpbbWarnings> PhpbbWarnings { get; set; }
         public virtual DbSet<PhpbbWords> PhpbbWords { get; set; }
         public virtual DbSet<PhpbbZebra> PhpbbZebra { get; set; }
+        public virtual DbSet<PhpbbUserGroupLink> PhpbbUserGroupLinks {get;set;}
 
         // Unable to generate entity type for table 'phpbb_acl_groups'. Please see the warning messages.
         // Unable to generate entity type for table 'phpbb_acl_users'. Please see the warning messages.
@@ -93,6 +94,91 @@ namespace LetChatBot
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+
+            modelBuilder.Entity<PhpbbUserGroupLink>(entity =>
+            {
+                entity.HasKey(e => new { e.UserId, e.GroupId });
+
+                entity.ToTable("phpbb_user_group");
+
+                entity.HasIndex(e => e.UserId)
+                    .HasName("user_id");
+
+                entity.HasIndex(e => e.GroupId)
+                    .HasName("group_id");
+
+                entity.HasIndex(e => e.GroupLeader)
+                    .HasName("group_leader");
+
+                entity.Property(e => e.UserId)
+                    .HasColumnName("user_id")
+                    .HasColumnType("mediumint(8)")
+                    .HasDefaultValueSql("0");
+
+                entity.Property(e => e.GroupId)
+                    .HasColumnName("group_id")
+                    .HasColumnType("mediumint(8)")
+                    .HasDefaultValueSql("0");
+
+                entity.Property(e => e.GroupLeader)
+                    .HasColumnName("group_leader")
+                    .HasColumnType("tynyint(1)")
+                    .HasDefaultValueSql("0");
+
+                entity.Property(e => e.UserPending)
+                    .HasColumnName("user_pending")
+                    .HasColumnType("tynyint(1)")
+                    .HasDefaultValueSql("1");
+            });
+
+            modelBuilder.Entity<IbotPiu>(entity =>
+            {
+                entity.ToTable("ibot_piu");
+
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .HasColumnType("int(11) unsigned")
+                    .ValueGeneratedNever();
+
+                entity.Property(e => e.Author)
+                    .HasColumnName("author")
+                    .HasMaxLength(30);
+
+                entity.Property(e => e.DateCreate)
+                    .HasColumnName("date_create")
+                    .HasMaxLength(20);
+
+                entity.Property(e => e.N)
+                    .HasColumnName("n")
+                    .HasColumnType("int(1)");
+
+                entity.Property(e => e.Text)
+                    .HasColumnName("text")
+                    .HasMaxLength(255);
+
+                entity.Property(e => e.U)
+                    .HasColumnName("u")
+                    .HasColumnType("int(1)");
+            });
+
+            modelBuilder.Entity<IbotQuestion>(entity =>
+            {
+                entity.ToTable("ibot_question");
+
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .HasColumnType("int(10) unsigned")
+                    .ValueGeneratedNever();
+
+                entity.Property(e => e.A)
+                    .HasColumnName("a")
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.Q)
+                    .HasColumnName("q")
+                    .HasMaxLength(300);
+            });
+
             modelBuilder.Entity<PhpbbAclOptions>(entity =>
             {
                 entity.HasKey(e => e.AuthOptionId);
