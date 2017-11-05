@@ -11,20 +11,28 @@ namespace LetChatBot
 {
     public class TelegramMessageProcessor
     {
-        private readonly TelegramBotClient _client;
+        private TelegramBotClient _client;
         private readonly ForumUserStore _userStore;
         private readonly ForumMessageStore _messageStore;
         private readonly IConfigurationRoot _config;
         private readonly int _forumBotUserId;
         private readonly long _defaultGroupId;
-        public TelegramMessageProcessor(TelegramBotClient client, ForumUserStore userStore, ForumMessageStore messageStore, IConfigurationRoot config)
+        public TelegramMessageProcessor(ForumUserStore userStore, ForumMessageStore messageStore, IConfigurationRoot config)
         {
-            _client = client;
             _messageStore = messageStore;
             _userStore = userStore;
             _config = config;
             _forumBotUserId = Convert.ToInt32(config["ForumBotUserId"]);
             _defaultGroupId = Convert.ToInt64(config["DefaultGroupId"]);
+        }
+
+        public void SetClient(TelegramBotClient client)
+        {
+            if (client == null)
+            {
+                throw new ArgumentNullException("Telegram client can't be null", nameof(client));
+            }
+            _client = client;
         }
 
         public void ProcessMessage(Message message)
@@ -42,12 +50,12 @@ namespace LetChatBot
                 }
                 if (message.Chat.Id == _defaultGroupId)
                 {
-                    SendToForum(message.From.FullName(), message.From.Id, message.Text);
+                    TelegramToForum(message.From.FullName(), message.From.Id, message.Text);
                 }
             }
         }
 
-        private void SendToForum(string telegramName, long telegramId, string text)
+        private void TelegramToForum(string telegramName, long telegramId, string text)
         {
             text = text.ConvertToForum();
             var user = _userStore.Users.FirstOrDefault(u => u.UserTelegramId == telegramId);
@@ -57,6 +65,27 @@ namespace LetChatBot
                 text = $"T({telegramName}): {text}";
             }
 
+            SendToForum(user, text);
+        }
+
+        private void SendToForum(string text, int forumUserId = -1)
+        {
+            if(forumUserId < 0)
+            {
+                forumUserId = _forumBotUserId;
+            }
+
+            var user = _userStore.Users.FirstOrDefault(u => u.UserId == forumUserId);
+            if(user == null)
+            {
+                user = _userStore.Users.First(u => u.UserId == _forumBotUserId);
+            }
+
+            SendToForum(user, text);
+        }
+
+        private void SendToForum(PhpbbUsers user, string text)
+        {
             var forumMessage = new PhpbbChat();
             forumMessage.Message = text;
             forumMessage.UserId = user.UserId;
@@ -71,27 +100,6 @@ namespace LetChatBot
             forumMessage.ChatId = 1;
 
             _messageStore.AddMessage(forumMessage);
-        }
-    }
-
-    public class TelegramMessageProcessorFactory
-    {
-        private readonly ForumUserStore _userStore;
-        private readonly ForumMessageStore _messageStore;
-        private readonly IConfigurationRoot _config;
-
-        public TelegramMessageProcessorFactory(ForumUserStore userStore, ForumMessageStore messageStore, IConfigurationRoot config)
-        {
-            _messageStore = messageStore;
-            _userStore = userStore;
-            _config = config;
-        }
-
-
-
-        public TelegramMessageProcessor GetProcessor(TelegramBotClient client)
-        {
-            return new TelegramMessageProcessor(client, _userStore, _messageStore, _config);
         }
     }
 }

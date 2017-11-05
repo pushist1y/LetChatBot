@@ -20,7 +20,6 @@ public class Bootstrapper
         services.AddScoped<ForumMessageStore>();
         services.AddScoped<ForumUserStore>();
         services.AddScoped<TelegramToForumUserLinker>();
-        services.AddScoped<TelegramMessageProcessorFactory>();
         
 
         

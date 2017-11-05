@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using LetChatBot.Model;
+using Microsoft.EntityFrameworkCore;
 
 namespace LetChatBot
 {
@@ -14,6 +15,7 @@ namespace LetChatBot
         }
 
         public IQueryable<PhpbbChat> UnprocessedMessages => _context.PhpbbChat
+                            .AsNoTracking()        
                             .Where(m => m.TelegramProcessed <= 0)
                             .OrderBy(m => m.MessageId);
 
