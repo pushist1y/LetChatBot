@@ -6,34 +6,30 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LetChatBot
 {
-public class Bootstrapper
-{
-    public void Initialize(IServiceCollection services, IConfigurationRoot config)
+    public class Bootstrapper
     {
-        services.AddDbContext<ForumContext>((options) => {
-            options.UseMySql(config.GetConnectionString("Forum"));
-        }, ServiceLifetime.Transient);
-
-        services.AddScoped<DatabaseChatPoller>();
-        services.AddScoped<LetChatBot>();
-        services.AddScoped<TelegramToForumUserLinker>();
-        
-
-        
-    }
-
-    public void Startup(IServiceProvider serviceProvider)
-    {
-        var bot = serviceProvider.GetRequiredService<LetChatBot>();
-        bot.Start();
-        
-        while(true)
+        public void Initialize(IServiceCollection services, IConfigurationRoot config)
         {
-            Console.WriteLine("Bot is working");
-            Thread.Sleep(5000);
+            services.AddDbContext<ForumContext>((options) =>
+            {
+                options.UseMySql(config.GetConnectionString("Forum"));
+            });
+
+            services.AddScoped<DatabaseChatPoller>();
+            services.AddScoped<LetChatBot>();
+            services.AddScoped<TelegramToForumUserLinker>();
         }
 
-        
+        public void Startup(IServiceProvider serviceProvider)
+        {
+            var bot = serviceProvider.GetRequiredService<LetChatBot>();
+            bot.Start();
+
+            while (true)
+            {
+                Console.WriteLine("Bot is working");
+                Thread.Sleep(5000);
+            }
+        }
     }
-}
 }
