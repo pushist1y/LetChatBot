@@ -14,11 +14,8 @@ public class Bootstrapper
             options.UseMySql(config.GetConnectionString("Forum"));
         }, ServiceLifetime.Transient);
 
-        services.AddScoped<ForumContextFactory>();
         services.AddScoped<DatabaseChatPoller>();
         services.AddScoped<LetChatBot>();
-        services.AddScoped<ForumMessageStore>();
-        services.AddScoped<ForumUserStore>();
         services.AddScoped<TelegramToForumUserLinker>();
         
 

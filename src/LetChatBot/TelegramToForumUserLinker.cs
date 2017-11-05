@@ -8,12 +8,12 @@ namespace LetChatBot
 {
     public class TelegramToForumUserLinker
     {
-        private readonly ForumUserStore _userStore;
+        private readonly ForumContext _context;
         private readonly IConfigurationRoot _config;
         private readonly int _forumBotUserId;
-        public TelegramToForumUserLinker(ForumUserStore userStore, IConfigurationRoot config)
+        public TelegramToForumUserLinker(ForumContext context, IConfigurationRoot config)
         {
-            _userStore = userStore;
+            _context = context;
             _config = config;
             _forumBotUserId = Convert.ToInt32(config["ForumBotUserId"]);
         }
@@ -55,14 +55,14 @@ namespace LetChatBot
                 return false;
             }
 
-            var user = _userStore.Users.FirstOrDefault(u => u.UserId == forumUserId);
+            var user = _context.PhpbbUsers.FirstOrDefault(u => u.UserId == forumUserId);
             if(user == null)
             {
                 return false;
             }
 
             user.UserTelegramId = tokenInfo.TelegramUserId;
-            _userStore.UpdateUser(user);
+            _context.SaveChanges();
             TokensCache.Remove(tokenInfo);
 
             UserLinked?.Invoke(this, new TelegramToForumLinkArgumentArgs{TelegramUserId = tokenInfo.TelegramUserId, ForumUser = user});
@@ -72,14 +72,14 @@ namespace LetChatBot
 
         public bool Unlink(long telegramUserId)
         {
-            var user = _userStore.Users.FirstOrDefault(u => u.UserTelegramId == telegramUserId);
+            var user = _context.PhpbbUsers.FirstOrDefault(u => u.UserTelegramId == telegramUserId);
             if(user == null)
             {
                 return false;
             }
 
             user.UserTelegramId = null;
-            _userStore.UpdateUser(user);
+            _context.SaveChanges();
             UserUnlinked?.Invoke(this, new TelegramToForumLinkArgumentArgs{TelegramUserId = telegramUserId, ForumUser = user});
 
             return true;

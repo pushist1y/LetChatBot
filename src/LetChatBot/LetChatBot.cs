@@ -14,16 +14,14 @@ namespace LetChatBot
     {
         private TelegramBotClient _client;
         private DatabaseChatPoller _dbPoller;
-        private readonly ForumUserStore _userStore;
-        private readonly ForumMessageStore _messageStore;
         private readonly TelegramToForumUserLinker _userLinker;
-
+        private readonly ForumContext _context;
         private readonly string _token;
         private readonly int _forumBotUserId;
         private readonly long _defaultGroupId;
         private readonly TelegramMessageProcessor _messageProcessor;
-        public LetChatBot(IConfigurationRoot config, DatabaseChatPoller dbPoller, ForumUserStore userStore,
-                        ForumMessageStore messageStore, TelegramToForumUserLinker userLinker,
+        public LetChatBot(IConfigurationRoot config, DatabaseChatPoller dbPoller, ForumContext context,
+                        TelegramToForumUserLinker userLinker,
                         TelegramMessageProcessor messageProcessor)
         {
             _token = config["TelegramBotToken"];
@@ -31,9 +29,8 @@ namespace LetChatBot
             _defaultGroupId = Convert.ToInt64(config["DefaultGroupId"]);
             _client = new TelegramBotClient(_token);
             _dbPoller = dbPoller;
-            _userStore = userStore;
+            _context = context;
             _userLinker = userLinker;
-            _messageStore = messageStore;
             _dbPoller.DatabaseMessageReceived += OnDatabaseMessageReceived;
             _client.OnMessage += OnTelegramMessageReceived;
 

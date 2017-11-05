@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using LetChatBot.Model;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -12,15 +13,13 @@ namespace LetChatBot
     public class TelegramMessageProcessor
     {
         private TelegramBotClient _client;
-        private readonly ForumUserStore _userStore;
-        private readonly ForumMessageStore _messageStore;
+        private readonly ForumContext _context;
         private readonly IConfigurationRoot _config;
         private readonly int _forumBotUserId;
         private readonly long _defaultGroupId;
-        public TelegramMessageProcessor(ForumUserStore userStore, ForumMessageStore messageStore, IConfigurationRoot config)
+        public TelegramMessageProcessor(ForumContext context, IConfigurationRoot config)
         {
-            _messageStore = messageStore;
-            _userStore = userStore;
+            _context = context;
             _config = config;
             _forumBotUserId = Convert.ToInt32(config["ForumBotUserId"]);
             _defaultGroupId = Convert.ToInt64(config["DefaultGroupId"]);
@@ -58,10 +57,10 @@ namespace LetChatBot
         private void TelegramToForum(string telegramName, long telegramId, string text)
         {
             text = text.ConvertToForum();
-            var user = _userStore.Users.FirstOrDefault(u => u.UserTelegramId == telegramId);
+            var user = _context.PhpbbUsers.AsNoTracking().FirstOrDefault(u => u.UserTelegramId == telegramId);
             if (user == null)
             {
-                user = _userStore.Users.First(u => u.UserId == _forumBotUserId);
+                user = _context.PhpbbUsers.AsNoTracking().First(u => u.UserId == _forumBotUserId);
                 text = $"T({telegramName}): {text}";
             }
 
@@ -75,10 +74,10 @@ namespace LetChatBot
                 forumUserId = _forumBotUserId;
             }
 
-            var user = _userStore.Users.FirstOrDefault(u => u.UserId == forumUserId);
+            var user = _context.PhpbbUsers.AsNoTracking().FirstOrDefault(u => u.UserId == forumUserId);
             if(user == null)
             {
-                user = _userStore.Users.First(u => u.UserId == _forumBotUserId);
+                user = _context.PhpbbUsers.AsNoTracking().First(u => u.UserId == _forumBotUserId);
             }
 
             SendToForum(user, text);
@@ -99,7 +98,8 @@ namespace LetChatBot
             forumMessage.Time = (new DateTimeOffset(DateTime.Now)).ToUnixTimeSeconds();
             forumMessage.ChatId = 1;
 
-            _messageStore.AddMessage(forumMessage);
+            _context.PhpbbChat.Add(forumMessage);
+            _context.SaveChanges();
         }
     }
 }

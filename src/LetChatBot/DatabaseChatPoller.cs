@@ -2,25 +2,27 @@ using System;
 using System.Linq;
 using System.Threading;
 using LetChatBot.Model;
+using Microsoft.EntityFrameworkCore;
 
 namespace LetChatBot
 {
     public class DatabaseChatPoller
     {
-        private readonly ForumMessageStore _messageStore;
         private Thread _runningThread;
-
+        private readonly ForumContext _context;
         private bool _isRunning = false;
-        public DatabaseChatPoller(ForumMessageStore messageStore)
+        public DatabaseChatPoller(ForumContext context)
         {
-            _messageStore = messageStore;
+            _context = context;
         }
 
         public event EventHandler<DatabaseMessageReceivedArgs> DatabaseMessageReceived;
 
         private void GetMessages()
         {
-            var messages = _messageStore.UnprocessedMessages;
+            var messages = _context.PhpbbChat
+                            .Where(m => m.TelegramProcessed <= 0)
+                            .OrderBy(m => m.MessageId);
             
             foreach(var m in messages)
             {
@@ -28,7 +30,7 @@ namespace LetChatBot
                 DatabaseMessageReceived?.Invoke(this, args);
             }
 
-            _messageStore.UpdateMessages(messages);
+            _context.SaveChanges();
         }
 
         private void RunningLoop()
