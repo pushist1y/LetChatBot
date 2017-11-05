@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 namespace LetChatBot
@@ -66,18 +67,29 @@ namespace LetChatBot
         public static string Bash(this string cmd)
         {
             var escapedArgs = cmd.Replace("\"", "\\\"");
+            bool isWindows = System.Runtime.InteropServices.RuntimeInformation
+                                               .IsOSPlatform(OSPlatform.Windows);
 
-            var process = new Process()
+            Process process = null;
+            if(isWindows)
             {
-                StartInfo = new ProcessStartInfo
+                
+            }
+            else
+            {
+                process = new Process()
                 {
-                    FileName = "/bin/bash",
-                    Arguments = $"-c \"{escapedArgs}\"",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                }
-            };
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "/bin/bash",
+                        Arguments = $"-c \"{escapedArgs}\"",
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                    }
+                };
+            }
+            
             process.Start();
             string result = process.StandardOutput.ReadToEnd();
             process.WaitForExit();

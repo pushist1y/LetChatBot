@@ -33,7 +33,7 @@ namespace LetChatBot
 
             _staticPath = config["StaticFolderPath"];
             _staticUrl = config["StaticDataUrl"];
-            _stickersFolder = config["ImagesFolder"];
+            _stickersFolder = config["StickersFolder"];
 
         }
 
@@ -76,7 +76,7 @@ namespace LetChatBot
                     {
                         fileInfo.FileStream.CopyTo(webpFile);
                     }
-                    $"dwebp {webpPath} -o {pngPath} ".Bash();
+                    $"dwebp \"{webpPath}\" -o \"{pngPath}\" ".Bash();
                     System.IO.File.Delete(webpPath);
                 }
 
