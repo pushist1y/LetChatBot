@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using LetChatBot.Model;
@@ -17,12 +18,23 @@ namespace LetChatBot
         private readonly IConfigurationRoot _config;
         private readonly int _forumBotUserId;
         private readonly long _defaultGroupId;
+        private readonly string _token;
+        private readonly string _staticPath;
+        private readonly string _staticUrl;
+        private readonly string _stickersFolder;
+
         public TelegramMessageProcessor(ForumContext context, IConfigurationRoot config)
         {
             _context = context;
             _config = config;
             _forumBotUserId = Convert.ToInt32(config["ForumBotUserId"]);
             _defaultGroupId = Convert.ToInt64(config["DefaultGroupId"]);
+            _token = config["TelegramBotToken"];
+
+            _staticPath = config["StaticFolderPath"];
+            _staticUrl = config["StaticDataUrl"];
+            _stickersFolder = config["ImagesFolder"];
+
         }
 
         public void SetClient(TelegramBotClient client)
@@ -52,19 +64,44 @@ namespace LetChatBot
                     TelegramToForum(message.From.FullName(), message.From.Id, message.Text);
                 }
             }
-        }
-
-        private void TelegramToForum(string telegramName, long telegramId, string text)
-        {
-                text = text.ConvertToForum();
-                var user = _context.PhpbbUsers.AsNoTracking().FirstOrDefault(u => u.UserTelegramId == telegramId);
-                if (user == null)
+            else if (message.Type == MessageType.StickerMessage)
+            {
+                var webpPath = Path.Combine(_staticPath, _stickersFolder, message.Sticker.FileId + ".webp");
+                var pngPath = Regex.Replace(webpPath, @"\.webp$", ".png");
+                if (!System.IO.File.Exists(pngPath))
                 {
-                    user = _context.PhpbbUsers.AsNoTracking().First(u => u.UserId == _forumBotUserId);
-                    text = $"T({telegramName}): {text}";
+                    var fileInfo = _client.GetFileAsync(message.Sticker.FileId).Result;
+                    
+                    using (var webpFile = System.IO.File.Create(webpPath))
+                    {
+                        fileInfo.FileStream.CopyTo(webpFile);
+                    }
+                    $"dwebp {webpPath} -o {pngPath} ".Bash();
+                    System.IO.File.Delete(webpPath);
                 }
 
-                SendToForum(user, text);
+                var stickerUrl = new Uri(_staticUrl).Append(_stickersFolder).Append(message.Sticker.FileId + ".png");
+
+                var text = $"(Стикер) {stickerUrl.AbsoluteUri}";
+
+                TelegramToForum(message.From.FullName(), message.From.Id, text);
+            }
+        }
+
+        private void TelegramToForum(string telegramName, long telegramId, string text, bool convert = true)
+        {
+            if (convert)
+            {
+                text = text.ConvertToForum();
+            }
+            var user = _context.PhpbbUsers.AsNoTracking().FirstOrDefault(u => u.UserTelegramId == telegramId);
+            if (user == null)
+            {
+                user = _context.PhpbbUsers.AsNoTracking().First(u => u.UserId == _forumBotUserId);
+                text = $"T({telegramName}): {text}";
+            }
+
+            SendToForum(user, text);
         }
 
         private void SendToForum(string text, int forumUserId = -1)
