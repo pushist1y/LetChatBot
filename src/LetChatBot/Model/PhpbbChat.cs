@@ -17,7 +17,7 @@ namespace LetChatBot.Model
         public byte BbcodeOptions { get; set; }
         public long Time { get; set; }
         public int? Processed { get; set; }
-        public sbyte TelegramProcessed { get; set; }
+        public byte TelegramProcessed { get; set; }
 
         [NotMapped]
         public string FilteredText {get;set;}

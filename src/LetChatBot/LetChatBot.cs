@@ -1,85 +1,78 @@
 using System;
-using System.Linq;
-using System.Net;
-using System.Text.RegularExpressions;
-using LetChatBot.Model;
-using Microsoft.Extensions.Configuration;
-using Telegram.Bot;
+using System.Threading;
+using System.Threading.Tasks;
+using LetChatBot.Extensions;
+using Microsoft.Extensions.Logging;
 using Telegram.Bot.Args;
-using Telegram.Bot.Types.Enums;
 
 namespace LetChatBot
 {
     public class LetChatBot
     {
-        private TelegramBotClient _client;
-        private DatabaseChatPoller _dbPoller;
+        private readonly DatabaseChatPoller _dbPoller;
+        private readonly TelegramAccessService _telegramAccessService;
         private readonly TelegramToForumUserLinker _userLinker;
-        private readonly ForumContext _context;
-        private readonly string _token;
-        private readonly int _forumBotUserId;
-        private readonly long _defaultGroupId;
         private readonly TelegramMessageProcessor _messageProcessor;
-        public LetChatBot(IConfigurationRoot config, DatabaseChatPoller dbPoller, ForumContext context,
+        private readonly ILogger<LetChatBot> _logger;
+
+        private bool _isRunning;
+        private CancellationTokenSource _cancellationTokenSource;
+
+        public LetChatBot(DatabaseChatPoller dbPoller,
+            TelegramAccessService telegramAccessService,
                         TelegramToForumUserLinker userLinker,
-                        TelegramMessageProcessor messageProcessor)
+                        TelegramMessageProcessor messageProcessor,
+            ILogger<LetChatBot> logger)
         {
-            _token = config["TelegramBotToken"];
-            _forumBotUserId = Convert.ToInt32(config["ForumBotUserId"]);
-            _defaultGroupId = Convert.ToInt64(config["DefaultGroupId"]);
-            _client = new TelegramBotClient(_token);
             _dbPoller = dbPoller;
-            _context = context;
+            _telegramAccessService = telegramAccessService;
             _userLinker = userLinker;
             _dbPoller.DatabaseMessageReceived += OnDatabaseMessageReceived;
-            _client.OnMessage += OnTelegramMessageReceived;
-
-            _userLinker.UserLinked += OnTelegramUserLinked;
-            _userLinker.UserUnlinked += OnTelegramUserUnlinked;
+            _telegramAccessService.Client.OnMessage += TelegramAccessServiceOnMessage;
+            _telegramAccessService.Client.OnUpdate += ClientOnOnUpdate;
             _messageProcessor = messageProcessor;
-            _messageProcessor.SetClient(_client);
+            _logger = logger;
+            _logger.LogDebug("Initializing LetChatBot instance");
         }
 
-        private void OnTelegramMessageReceived(object sender, MessageEventArgs q)
+        private void ClientOnOnUpdate(object sender, UpdateEventArgs e)
         {
-            _messageProcessor.ProcessMessage(q.Message);
+            _logger.LogDebug(e.Update.Message.Text);
         }
 
-        private void OnTelegramUserLinked(object sender, TelegramToForumLinkArgumentArgs e)
+        private async void TelegramAccessServiceOnMessage(object sender, MessageEventArgs e)
         {
-            var text = $"Вы успешно связали вашу учётную запись Telegram с аккаунтом [{e.ForumUser.Username}] на форуме";
-            _client.SendTextMessageAsync(e.TelegramUserId, text).Wait();
+            await _messageProcessor.ProcessMessage(e.Message);
         }
 
-        private void OnTelegramUserUnlinked(object sender, TelegramToForumLinkArgumentArgs e)
-        {
-            var text = "Вы успешно отвязали вашу учётную запись Telegram от аккаунта на форуме";
-            _client.SendTextMessageAsync(e.TelegramUserId, text).Wait();
-        }
-
-        private void OnDatabaseMessageReceived(object sender, DatabaseMessageReceivedArgs e)
+        private async void OnDatabaseMessageReceived(object sender, DatabaseMessageReceivedArgs e)
         {
             Console.WriteLine($"{e.Message.Username}: {e.Message.Message}");
 
-            _userLinker.ValidateAndLink(e.Message.UserId, e.Message.Message);
-
-
-            var text = $"{e.Message.Username}: {e.Message.Message.ConvertToTelegram()}";
-            var res = _client.SendTextMessageAsync(_defaultGroupId, text).Result;
-            e.Message.TelegramProcessed = 1;
+            await _userLinker.ValidateAndLink(e.Message.UserId, e.Message.Message);
+            await _telegramAccessService.SendToGroupFromUsernameAsync(e.Message.Username, e.Message.Message.ConvertToTelegram());
 
         }
 
-        public void Start()
+        public async Task Start()
         {
-            _client.StartReceiving();
-            _dbPoller.StartPolling();
+            if (_isRunning)
+            {
+                return;
+            }
+            _logger.LogDebug("Starting LetChatBot");
+            _isRunning = true;
+            _cancellationTokenSource = new CancellationTokenSource();
+            _telegramAccessService.Client.StartReceiving();
+            var q = await _telegramAccessService.Client.GetMeAsync();
+            await _dbPoller.StartAsync(_cancellationTokenSource.Token);
         }
 
-        public void Stop()
+        public async Task Stop()
         {
-            _client.StopReceiving();
-            _dbPoller.StopPolling();
+            _logger.LogDebug("Stopping LetChatBot");
+            _telegramAccessService.Client.StopReceiving();
+            await _dbPoller.StopAsync(_cancellationTokenSource.Token);
         }
 
     }

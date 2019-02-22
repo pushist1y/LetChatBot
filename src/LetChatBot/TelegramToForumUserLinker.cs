@@ -1,38 +1,54 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using LetChatBot.Model;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 
 namespace LetChatBot
 {
     public class TelegramToForumUserLinker
     {
-        private readonly ForumContext _context;
-        private readonly IConfigurationRoot _config;
+        private readonly ForumLinkRepository _linkRepository;
+        private readonly TelegramAccessService _telegramAccessService;
         private readonly int _forumBotUserId;
-        public TelegramToForumUserLinker(ForumContext context, IConfigurationRoot config)
+
+        public TelegramToForumUserLinker(ForumLinkRepository linkRepository, IConfiguration config, TelegramAccessService telegramAccessService)
         {
-            _context = context;
-            _config = config;
+            _linkRepository = linkRepository;
+            _telegramAccessService = telegramAccessService;
             _forumBotUserId = Convert.ToInt32(config["ForumBotUserId"]);
         }
-        private static List<TelegramForumLinkTokenInfo> TokensCache = new List<TelegramForumLinkTokenInfo>();
 
-        public event EventHandler<TelegramToForumLinkArgumentArgs> UserLinked;
-        public event EventHandler<TelegramToForumLinkArgumentArgs> UserUnlinked;
-        public string IssueToken(long telegramUserId)
+        private static readonly SemaphoreSlim TokensSemaphore = new SemaphoreSlim(1, 1);
+        private static readonly Dictionary<string, TelegramForumLinkTokenInfo> TokensCache = new Dictionary<string, TelegramForumLinkTokenInfo>();
+
+        public async Task<string> IssueToken(long telegramUserId)
         {
             var tokenInfo = new TelegramForumLinkTokenInfo{
                 TelegramUserId = telegramUserId, 
                 Token = Guid.NewGuid().ToString("n")
             };
-            TokensCache.RemoveAll(t => t.TelegramUserId == telegramUserId);
-            TokensCache.Add(tokenInfo);
-            return tokenInfo.Token;
+
+            await TokensSemaphore.WaitAsync();
+            try
+            {
+                var existingKeys = TokensCache.Where(kv => kv.Value.TelegramUserId == telegramUserId).Select(kv => kv.Key);
+                foreach (var key in existingKeys)
+                {
+                    TokensCache.Remove(key);
+                }
+
+                TokensCache[tokenInfo.Token] = tokenInfo;
+                return tokenInfo.Token;
+            }
+            finally
+            {
+                TokensSemaphore.Release();
+            }
         }
 
-        public bool ValidateAndLink(int forumUserId, string messageText)
+        public async Task<bool> ValidateAndLink(int forumUserId, string messageText)
         {
             if(forumUserId == _forumBotUserId)
             {
@@ -44,46 +60,41 @@ namespace LetChatBot
                 return false;
             }
 
-            if(messageText.Trim().Length != 32)
+            var token = messageText.Trim();
+
+            if(token.Length != 32)
             {
                 return false;
             }
 
-            var tokenInfo = TokensCache.FirstOrDefault(t => t.Token.Equals(messageText.Trim(), StringComparison.OrdinalIgnoreCase));
-            if(tokenInfo == null)
+            TelegramForumLinkTokenInfo tokenInfo;
+            await TokensSemaphore.WaitAsync();
+            try
+            {
+                if (!TokensCache.TryGetValue(token, out tokenInfo))
+                {
+                    return false;
+                }
+            }
+            finally
+            {
+                TokensSemaphore.Release();
+            }
+
+
+            var forumUser = await _linkRepository.SetUserLink(forumUserId, tokenInfo.TelegramUserId);
+            if (forumUser == null)
             {
                 return false;
             }
 
-            var user = _context.PhpbbUsers.FirstOrDefault(u => u.UserId == forumUserId);
-            if(user == null)
-            {
-                return false;
-            }
-
-            user.UserTelegramId = tokenInfo.TelegramUserId;
-            _context.SaveChanges();
-            TokensCache.Remove(tokenInfo);
-
-            UserLinked?.Invoke(this, new TelegramToForumLinkArgumentArgs{TelegramUserId = tokenInfo.TelegramUserId, ForumUser = user});
+            var text = $"Вы успешно связали вашу учётную запись Telegram с аккаунтом [{forumUser.Username}] на форуме";
+            await _telegramAccessService.SendToUserAsync(text, Convert.ToString(tokenInfo.TelegramUserId));
 
             return true;
         }
 
-        public bool Unlink(long telegramUserId)
-        {
-            var user = _context.PhpbbUsers.FirstOrDefault(u => u.UserTelegramId == telegramUserId);
-            if(user == null)
-            {
-                return false;
-            }
-
-            user.UserTelegramId = null;
-            _context.SaveChanges();
-            UserUnlinked?.Invoke(this, new TelegramToForumLinkArgumentArgs{TelegramUserId = telegramUserId, ForumUser = user});
-
-            return true;
-        }
+       
     }
 
     public class TelegramForumLinkTokenInfo
@@ -92,9 +103,4 @@ namespace LetChatBot
         public string Token {get;set;}
     }
 
-    public class TelegramToForumLinkArgumentArgs
-    {
-        public long TelegramUserId {get;set;}
-        public PhpbbUsers ForumUser {get;set;}
-    }
 }

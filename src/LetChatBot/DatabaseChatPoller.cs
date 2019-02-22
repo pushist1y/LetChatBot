@@ -1,73 +1,54 @@
 using System;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using LetChatBot.Model;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace LetChatBot
 {
-    public class DatabaseChatPoller
+    public class DatabaseChatPoller: HostedService
     {
-        private Thread _runningThread;
-        private readonly ForumContext _context;
-        private bool _isRunning = false;
-        public DatabaseChatPoller(ForumContext context)
-        {
-            _context = context;
-        }
-
+        private readonly MessagesRepository _messagesRepository;
+        private readonly ILogger<DatabaseChatPoller> _logger;
         public event EventHandler<DatabaseMessageReceivedArgs> DatabaseMessageReceived;
 
-        private void GetMessages()
+        public DatabaseChatPoller(MessagesRepository messagesRepository, ILogger<DatabaseChatPoller> logger)
         {
-            var messages = _context.PhpbbChat
-                            .Where(m => m.TelegramProcessed <= 0)
-                            .OrderBy(m => m.MessageId);
+            _messagesRepository = messagesRepository;
+            _logger = logger;
+        }
+
+        private int? _lastId;
+
+        protected override async Task ExecuteAsync(CancellationToken cancellationToken)
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    var messages = await _messagesRepository.GetUnprocessedMessagesAsync(_lastId);
+                    if (messages.Any())
+                    {
+                        _lastId = messages.Max(m => m.MessageId);
+                    }
             
-            foreach(var m in messages)
-            {
-                var args = new DatabaseMessageReceivedArgs(m);
-                DatabaseMessageReceived?.Invoke(this, args);
+                    foreach(var m in messages)
+                    {
+                        var args = new DatabaseMessageReceivedArgs(m);
+                        DatabaseMessageReceived?.Invoke(this, args);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error on polling database for new messages");
+                }
+                finally
+                {
+                    await Task.Delay(1000, cancellationToken);
+                }
             }
-
-            _context.SaveChanges();
         }
-
-        private void RunningLoop()
-        {
-            while(_isRunning)
-            {
-                Thread.Sleep(1000);
-                GetMessages();
-            }
-        }
-
-        public void StartPolling()
-        {
-            if(_isRunning)
-            {
-                return;
-            }
-
-            _isRunning = true;
-            var threadStart = new ThreadStart(this.RunningLoop);
-            _runningThread = new Thread(threadStart);
-            _runningThread.Start();
-        }
-
-        public void StopPolling()
-        {
-            if(!_isRunning)
-            {
-                return;
-            }
-
-            _isRunning = false;
-            _runningThread.Join();
-            _runningThread = null;
-        }
-
-
     }
 
     public class DatabaseMessageReceivedArgs

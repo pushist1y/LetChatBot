@@ -3,7 +3,7 @@ using System.Net;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
-namespace LetChatBot
+namespace LetChatBot.Extensions
 {
     public static class LetChatBotStringExtensions
     {

@@ -8,7 +8,7 @@ namespace LetChatBot
 {
     public class Bootstrapper
     {
-        public void Initialize(IServiceCollection services, IConfigurationRoot config)
+        public void Initialize(IServiceCollection services, IConfiguration config)
         {
             services.AddDbContext<ForumContext>((options) =>
             {
@@ -16,21 +16,24 @@ namespace LetChatBot
                 options.EnableSensitiveDataLogging();
             }, ServiceLifetime.Transient);
 
-            services.AddScoped<DatabaseChatPoller>();
-            services.AddScoped<LetChatBot>();
-            services.AddScoped<TelegramToForumUserLinker>();
-            services.AddScoped<TelegramMessageProcessor>();
+            services.AddSingleton<DatabaseChatPoller>();
+            services.AddSingleton<LetChatBot>();
+            services.AddSingleton<TelegramAccessService>();
+            services.AddTransient<TelegramToForumUserLinker>();
+            services.AddTransient<TelegramMessageProcessor>();
+            services.AddTransient<ForumLinkRepository>();
+            services.AddTransient<MessagesRepository>();
+            services.Configure<TelegramOptions>(config);
         }
 
         public void Startup(IServiceProvider serviceProvider)
         {
             var bot = serviceProvider.GetRequiredService<LetChatBot>();
-            bot.Start();
+            bot.Start().Wait();
 
             while (true)
             {
-                Console.WriteLine("Bot is working");
-                Thread.Sleep(5000);
+                Thread.Sleep(500);
             }
         }
     }
