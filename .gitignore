@@ -12,3 +12,4 @@ bld/
 
 *unversioned*
 .vs/
+*.tar.gz
