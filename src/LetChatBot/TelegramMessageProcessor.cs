@@ -16,6 +16,7 @@ namespace LetChatBot
     public class TelegramMessageProcessor
     {
         private readonly MessagesRepository _messagesRepository;
+        private readonly CommandProcessor _commandProcessor;
         private readonly ILogger<TelegramMessageProcessor> _logger;
         private readonly TelegramAccessService _telegramAccessService;
         private readonly long _defaultGroupId;
@@ -27,10 +28,12 @@ namespace LetChatBot
 
         public TelegramMessageProcessor(IConfiguration config,
             MessagesRepository messagesRepository,
+            CommandProcessor commandProcessor,
             ILogger<TelegramMessageProcessor> logger,
             TelegramAccessService telegramAccessService)
         {
             _messagesRepository = messagesRepository;
+            _commandProcessor = commandProcessor;
             _logger = logger;
             _telegramAccessService = telegramAccessService;
             _defaultGroupId = Convert.ToInt64(config["DefaultGroupId"]);
@@ -216,23 +219,26 @@ namespace LetChatBot
 
         public async Task ProcessMessage(Message message)
         {
-            if (message.Type == MessageType.Text)
+            Console.WriteLine($"TG [{message.From.FullName()}]: {message.Text}");
+
+            if (await _commandProcessor.ProcessTelegramCommand(message))
             {
-                var match = Regex.Match(message.Text, "^(?:\\/([a-z0-9_]+)(@[a-z0-9_]+)?(?:\\s+(.*))?)$");
-                if (match.Success)
-                {
-                    var command = match.Groups[1].Value;
-                    var owner = match.Groups[2].Value;
-                    var commandParams = match.Groups[3].Value;
-                    //telegram command
-                    return;
-                }
+                return;
             }
 
             if (message.Chat.Id == _defaultGroupId)
             {
-                await ProcessGroupMessage(message);
+                try
+                {
+                    await ProcessGroupMessage(message);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, "Error on processing tg message");
+                }
             }
+
+            await _commandProcessor.ProcessTelegramForumCommand(message);
         }
 
         private async Task TelegramToForum(string telegramName, long telegramId, string text)

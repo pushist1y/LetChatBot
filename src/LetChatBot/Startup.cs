@@ -26,7 +26,7 @@ namespace LetChatBot
 
             services.AddSingleton(Configuration);
             services.AddSingleton(Bootstrapper);
-            services.AddLogging(options => { options.AddConsole(); });
+            services.AddLogging(options => { options.AddConfiguration(Configuration.GetSection("Logging")).AddConsole(); });
 
             Bootstrapper.Initialize(services, Configuration);
 

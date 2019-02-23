@@ -64,6 +64,20 @@ namespace LetChatBot
             await SetMessageProcessedAsync(new[] { messageId });
         }
 
+        public async Task SaveMessageAsync(string text)
+        {
+            var scopeFactory = _serviceProvider.GetRequiredService<IServiceScopeFactory>();
+            using (var scope = scopeFactory.CreateScope())
+            {
+                var context = scope.ServiceProvider.GetRequiredService<ForumContext>();
+
+                var user = context.PhpbbUsers.FirstOrDefault(u => u.UserId == _forumBotUserId);
+                var message = CreateMessage(user, text);
+                await context.PhpbbChat.AddAsync(message);
+                await context.SaveChangesAsync();
+            }
+        }
+
         public async Task SaveMessageAsync(string telegramName, long telegramId, string text)
         {
             var scopeFactory = _serviceProvider.GetRequiredService<IServiceScopeFactory>();

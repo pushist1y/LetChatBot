@@ -24,6 +24,8 @@ namespace LetChatBot
             services.AddTransient<TelegramMessageProcessor>();
             services.AddTransient<ForumLinkRepository>();
             services.AddTransient<MessagesRepository>();
+            services.AddTransient<CommandProcessor>();
+            services.AddTransient<PiuRepository>();
             services.Configure<TelegramOptions>(config);
         }
 

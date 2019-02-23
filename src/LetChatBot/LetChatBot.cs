@@ -13,6 +13,7 @@ namespace LetChatBot
         private readonly TelegramAccessService _telegramAccessService;
         private readonly TelegramToForumUserLinker _userLinker;
         private readonly TelegramMessageProcessor _messageProcessor;
+        private readonly CommandProcessor _commandProcessor;
         private readonly MessagesRepository _messagesRepository;
         private readonly ILogger<LetChatBot> _logger;
 
@@ -23,6 +24,7 @@ namespace LetChatBot
             TelegramAccessService telegramAccessService,
                         TelegramToForumUserLinker userLinker,
                         TelegramMessageProcessor messageProcessor,
+            CommandProcessor commandProcessor,
             MessagesRepository messagesRepository,
             ILogger<LetChatBot> logger)
         {
@@ -33,6 +35,7 @@ namespace LetChatBot
             _telegramAccessService.Client.OnMessage += TelegramAccessServiceOnMessage;
             _telegramAccessService.Client.OnUpdate += ClientOnOnUpdate;
             _messageProcessor = messageProcessor;
+            _commandProcessor = commandProcessor;
             _messagesRepository = messagesRepository;
             _logger = logger;
             _logger.LogDebug("Initializing LetChatBot instance");
@@ -50,11 +53,20 @@ namespace LetChatBot
 
         private async void OnDatabaseMessageReceived(object sender, DatabaseMessageReceivedArgs e)
         {
-            Console.WriteLine($"{e.Message.Username}: {e.Message.Message}");
+            Console.WriteLine($"F [{e.Message.Username}]: {e.Message.Message}");
 
-            await _userLinker.ValidateAndLink(e.Message.UserId, e.Message.Message);
-            await _telegramAccessService.SendToGroupFromUsernameAsync(e.Message.Message.ConvertToTelegram(), e.Message.Username);
-            await _messagesRepository.SetMessageProcessedAsync(e.Message.MessageId);
+            try
+            {
+                await _userLinker.ValidateAndLink(e.Message.UserId, e.Message.Message);
+                await _telegramAccessService.SendToGroupFromUsernameAsync(e.Message.Message.ConvertToTelegram(), e.Message.Username);
+                await _messagesRepository.SetMessageProcessedAsync(e.Message.MessageId);
+                await _commandProcessor.ProcessForumCommand(e.Message);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Error on processing db message");
+            }
+            
 
         }
 
