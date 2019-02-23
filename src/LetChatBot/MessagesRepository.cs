@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using LetChatBot.Model;
+using LetChatBot.Data;
+using LetChatBot.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,7 +21,7 @@ namespace LetChatBot
             _forumBotUserId = Convert.ToInt32(config["ForumBotUserId"]);
         }
 
-        public async Task<IList<PhpbbChat>> GetUnprocessedMessagesAsync(int? fromId = null)
+        public async Task<IList<PhpbbChat>> GetUnprocessedMessagesAsync(uint? fromId = null)
         {
             var scopeFactory = _serviceProvider.GetRequiredService<IServiceScopeFactory>();
             using (var scope = scopeFactory.CreateScope())
@@ -38,7 +39,7 @@ namespace LetChatBot
             }
         }
 
-        public async Task SetMessageProcessedAsync(IList<int> messageIds)
+        public async Task SetMessageProcessedAsync(IList<uint> messageIds)
         {
             var scopeFactory = _serviceProvider.GetRequiredService<IServiceScopeFactory>();
             using (var scope = scopeFactory.CreateScope())
@@ -56,6 +57,11 @@ namespace LetChatBot
                 await context.SaveChangesAsync();
 
             }
+        }
+
+        public async Task SetMessageProcessedAsync(uint messageId)
+        {
+            await SetMessageProcessedAsync(new[] { messageId });
         }
 
         public async Task SaveMessageAsync(string telegramName, long telegramId, string text)
@@ -90,7 +96,7 @@ namespace LetChatBot
             forumMessage.BbcodeOptions = 7;
             forumMessage.TelegramProcessed = 1;
 
-            forumMessage.Time = (new DateTimeOffset(DateTime.Now)).ToUnixTimeSeconds();
+            forumMessage.Time = Convert.ToUInt32(new DateTimeOffset(DateTime.Now).ToUnixTimeSeconds());
             forumMessage.ChatId = 1;
 
             return forumMessage;

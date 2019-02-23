@@ -48,7 +48,7 @@ namespace LetChatBot
             }
         }
 
-        public async Task<bool> ValidateAndLink(int forumUserId, string messageText)
+        public async Task<bool> ValidateAndLink(uint forumUserId, string messageText)
         {
             if(forumUserId == _forumBotUserId)
             {

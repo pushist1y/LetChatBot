@@ -13,6 +13,7 @@ namespace LetChatBot
         private readonly TelegramAccessService _telegramAccessService;
         private readonly TelegramToForumUserLinker _userLinker;
         private readonly TelegramMessageProcessor _messageProcessor;
+        private readonly MessagesRepository _messagesRepository;
         private readonly ILogger<LetChatBot> _logger;
 
         private bool _isRunning;
@@ -22,6 +23,7 @@ namespace LetChatBot
             TelegramAccessService telegramAccessService,
                         TelegramToForumUserLinker userLinker,
                         TelegramMessageProcessor messageProcessor,
+            MessagesRepository messagesRepository,
             ILogger<LetChatBot> logger)
         {
             _dbPoller = dbPoller;
@@ -31,6 +33,7 @@ namespace LetChatBot
             _telegramAccessService.Client.OnMessage += TelegramAccessServiceOnMessage;
             _telegramAccessService.Client.OnUpdate += ClientOnOnUpdate;
             _messageProcessor = messageProcessor;
+            _messagesRepository = messagesRepository;
             _logger = logger;
             _logger.LogDebug("Initializing LetChatBot instance");
         }
@@ -50,7 +53,8 @@ namespace LetChatBot
             Console.WriteLine($"{e.Message.Username}: {e.Message.Message}");
 
             await _userLinker.ValidateAndLink(e.Message.UserId, e.Message.Message);
-            await _telegramAccessService.SendToGroupFromUsernameAsync(e.Message.Username, e.Message.Message.ConvertToTelegram());
+            await _telegramAccessService.SendToGroupFromUsernameAsync(e.Message.Message.ConvertToTelegram(), e.Message.Username);
+            await _messagesRepository.SetMessageProcessedAsync(e.Message.MessageId);
 
         }
 

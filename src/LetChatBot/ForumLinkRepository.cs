@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
-using LetChatBot.Model;
+using LetChatBot.Data;
+using LetChatBot.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -15,7 +16,7 @@ namespace LetChatBot
             _serviceProvider = serviceProvider;
         }
 
-        public async Task<PhpbbUsers> SetUserLink(int forumUserId, long? telegramUserId)
+        public async Task<PhpbbUsers> SetUserLink(uint forumUserId, long? telegramUserId)
         {
             var scopeFactory = _serviceProvider.GetRequiredService<IServiceScopeFactory>();
             using (var scope = scopeFactory.CreateScope())

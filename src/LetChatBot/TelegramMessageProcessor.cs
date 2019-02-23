@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using ImageMagick;
 using LetChatBot.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -24,8 +25,8 @@ namespace LetChatBot
         private readonly string _imagesFolder;
         private readonly string _filesFolder;
 
-        public TelegramMessageProcessor(IConfiguration config, 
-            MessagesRepository messagesRepository, 
+        public TelegramMessageProcessor(IConfiguration config,
+            MessagesRepository messagesRepository,
             ILogger<TelegramMessageProcessor> logger,
             TelegramAccessService telegramAccessService)
         {
@@ -64,6 +65,9 @@ namespace LetChatBot
                 case MessageType.Document:
                     await ProcessGroupDocumentMessage(message);
                     break;
+                case MessageType.Voice:
+                    await ProcessGroupVoiceMessage(message);
+                    break;
 
             }
         }
@@ -81,12 +85,17 @@ namespace LetChatBot
             if (!File.Exists(pngPath))
             {
                 var fileInfo = await _telegramAccessService.Client.GetFileAsync(message.Sticker.FileId);
-
-                using (var webpFile = File.Create(webpPath))
+                using (var f = File.Open(webpPath, FileMode.Create, FileAccess.Write))
                 {
-                    File.Open(fileInfo.FilePath, FileMode.Open, FileAccess.Read).CopyTo(webpFile);
+                    await _telegramAccessService.Client.DownloadFileAsync(fileInfo.FilePath, f);
                 }
-                $"dwebp \"{webpPath}\" -o \"{pngPath}\" ".Bash();
+
+                using (var image = new MagickImage(webpPath))
+                {
+                    image.Format = MagickFormat.Png;
+                    image.Write(pngPath);
+                }
+
                 File.Delete(webpPath);
             }
 
@@ -104,10 +113,9 @@ namespace LetChatBot
             if (!File.Exists(filePath))
             {
                 var fileInfo = await _telegramAccessService.Client.GetFileAsync(imageInfo.FileId);
-
-                using (var jpgFile = File.Create(filePath))
+                using (var f = File.Open(filePath, FileMode.Create, FileAccess.Write))
                 {
-                    File.Open(fileInfo.FilePath, FileMode.Open, FileAccess.Read).CopyTo(jpgFile);
+                    await _telegramAccessService.Client.DownloadFileAsync(fileInfo.FilePath, f);
                 }
             }
 
@@ -129,59 +137,77 @@ namespace LetChatBot
             {
                 var fileInfo = await _telegramAccessService.Client.GetFileAsync(message.Video.FileId);
 
-                using (var videoFile = File.Create(filePath))
+                using (var f = File.Open(filePath, FileMode.Create, FileAccess.Write))
                 {
-                    File.Open(fileInfo.FilePath, FileMode.Open, FileAccess.Read).CopyTo(videoFile);
+                    await _telegramAccessService.Client.DownloadFileAsync(fileInfo.FilePath, f);
                 }
             }
             var imageUrl = new Uri(_staticUrl).Append(_filesFolder).Append(message.Video.FileId + ".jpg");
             await TelegramToForum(message.From.FullName(), message.From.Id, $"( {imageUrl} )");
         }
 
+        private async Task ProcessGroupVoiceMessage(Message message)
+        {
+            var filePath = Path.Combine(_staticPath, _filesFolder, message.Voice.FileId + ".ogg");
+            if (!File.Exists(filePath))
+            {
+                var fileInfo = await _telegramAccessService.Client.GetFileAsync(message.Voice.FileId);
+
+                using (var f = File.Open(filePath, FileMode.Create, FileAccess.Write))
+                {
+                    await _telegramAccessService.Client.DownloadFileAsync(fileInfo.FilePath, f);
+                }
+            }
+            var fileUrl = new Uri(_staticUrl).Append(_filesFolder).Append(message.Voice.FileId + ".ogg");
+            await TelegramToForum(message.From.FullName(), message.From.Id, $"Голосовое сообщение: ( {fileUrl} )");
+        }
+
         private async Task ProcessGroupDocumentMessage(Message message)
         {
-            var filePath = Path.Combine(_staticPath, _filesFolder, message.Audio.FileId + ".mp3");
+            var localFileName = DateTimeOffset.Now.ToString("yyyy-MM-dd-HH-mm-ss-") + message.Document.FileName;
+            var filePath = Path.Combine(_staticPath, _filesFolder, localFileName);
             if (!File.Exists(filePath))
             {
                 var fileInfo = await _telegramAccessService.Client.GetFileAsync(message.Document.FileId);
 
-                using (var docFile = File.Create(filePath))
+                using (var f = File.Open(filePath, FileMode.Create, FileAccess.Write))
                 {
-                    File.Open(fileInfo.FilePath, FileMode.Open, FileAccess.Read).CopyTo(docFile);
+                    await _telegramAccessService.Client.DownloadFileAsync(fileInfo.FilePath, f);
                 }
             }
-            var docUrl = new Uri(_staticUrl).Append(_filesFolder).Append(message.Audio.FileId + ".mp3");
+            var docUrl = new Uri(_staticUrl).Append(_filesFolder).Append(localFileName);
             await TelegramToForum(message.From.FullName(), message.From.Id, $"( {docUrl} )");
         }
 
         private async Task ProcessGroupAudioMessage(Message message)
         {
-            if (message.Document.FileSize > 1024 * 1024 * 20)
-            {
-                return;
-            }
             string fileName;
-            if (message.Document.FileName == null)
+            if (!string.IsNullOrEmpty(message.Audio.Performer) || !string.IsNullOrEmpty(message.Audio.Title))
             {
-                fileName = message.Document.FileId;
-                if (message.Document.MimeType == "video/mp4")
-                {
-                    fileName += ".mp4";
-                }
+                fileName = $"{(string.IsNullOrEmpty(message.Audio.Performer) ? "Unknown artist" : message.Audio.Performer)} - {(string.IsNullOrEmpty(message.Audio.Title) ? "Unknown title" : message.Audio.Title)}";
             }
             else
             {
-                fileName = message.Document.FileId + "_" + message.Document.FileName;
+                fileName = message.Audio.FileId;
+            }
+
+            if (message.Audio.MimeType.Contains("mpeg"))
+            {
+                fileName += ".mp3";
+            }
+            else
+            {
+                fileName += ".mp3";
             }
 
             var filePath = Path.Combine(_staticPath, _filesFolder, fileName);
             if (!File.Exists(filePath))
             {
-                var fileInfo = await _telegramAccessService.Client.GetFileAsync(message.Document.FileId);
+                var fileInfo = await _telegramAccessService.Client.GetFileAsync(message.Audio.FileId);
 
-                using (var docFile = File.Create(filePath))
+                using (var f = File.Open(filePath, FileMode.Create, FileAccess.Write))
                 {
-                    File.Open(fileInfo.FilePath, FileMode.Open, FileAccess.Read).CopyTo(docFile);
+                    await _telegramAccessService.Client.DownloadFileAsync(fileInfo.FilePath, f);
                 }
             }
             var docUrl = new Uri(_staticUrl).Append(_filesFolder).Append(fileName);
@@ -216,39 +242,5 @@ namespace LetChatBot
             await _messagesRepository.SaveMessageAsync(telegramName, telegramId, text);
         }
 
-        //private void SendToForum(string text, int forumUserId = -1)
-        //{
-        //    if (forumUserId < 0)
-        //    {
-        //        forumUserId = _forumBotUserId;
-        //    }
-
-        //    var user = _context.PhpbbUsers.FirstOrDefault(u => u.UserId == forumUserId);
-        //    if (user == null)
-        //    {
-        //        user = _context.PhpbbUsers.First(u => u.UserId == _forumBotUserId);
-        //    }
-
-        //    SendToForum(user, text);
-        //}
-
-        //private void SendToForum(PhpbbUsers user, string text)
-        //{
-        //    var forumMessage = new PhpbbChat();
-        //    forumMessage.Message = text;
-        //    forumMessage.UserId = user.UserId;
-        //    forumMessage.Username = user.Username;
-        //    forumMessage.UserColour = user.UserColour;
-        //    forumMessage.BbcodeBitfield = string.Empty;
-        //    forumMessage.BbcodeUid = string.Empty;
-        //    forumMessage.BbcodeOptions = 7;
-        //    forumMessage.TelegramProcessed = 1;
-
-        //    forumMessage.Time = (new DateTimeOffset(DateTime.Now)).ToUnixTimeSeconds();
-        //    forumMessage.ChatId = 1;
-
-        //    _context.PhpbbChat.Add(forumMessage);
-        //    _context.SaveChanges();
-        //}
     }
 }

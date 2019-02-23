@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using LetChatBot.Model;
+using LetChatBot.Models;
 using Microsoft.Extensions.Logging;
 
 namespace LetChatBot
@@ -19,7 +19,7 @@ namespace LetChatBot
             _logger = logger;
         }
 
-        private int? _lastId;
+        private uint? _lastId;
 
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
         {

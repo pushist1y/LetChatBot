@@ -2,6 +2,7 @@ using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using System.Threading;
+using LetChatBot.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace LetChatBot
