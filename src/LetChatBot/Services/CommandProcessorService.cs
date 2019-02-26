@@ -11,15 +11,15 @@ using Telegram.Bot.Types.Enums;
 
 namespace LetChatBot
 {
-    public class CommandProcessor
+    public class CommandProcessorService
     {
         private readonly TelegramAccessService _telegramAccessService;
-        private readonly TelegramToForumUserLinker _forumUserLinker;
+        private readonly TelegramToForumLinkService _forumUserLinker;
         private readonly PiuRepository _piuRepository;
         private readonly MessagesRepository _messagesRepository;
         private readonly long _defaultGroupId;
 
-        public CommandProcessor(IConfiguration config, TelegramAccessService telegramAccessService, TelegramToForumUserLinker forumUserLinker, PiuRepository piuRepository, MessagesRepository messagesRepository)
+        public CommandProcessorService(IConfiguration config, TelegramAccessService telegramAccessService, TelegramToForumLinkService forumUserLinker, PiuRepository piuRepository, MessagesRepository messagesRepository)
         {
             _telegramAccessService = telegramAccessService;
             _forumUserLinker = forumUserLinker;

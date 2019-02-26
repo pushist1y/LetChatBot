@@ -13,11 +13,11 @@ using File = System.IO.File;
 
 namespace LetChatBot
 {
-    public class TelegramMessageProcessor
+    public class TelegramMessageProcessorService
     {
         private readonly MessagesRepository _messagesRepository;
-        private readonly CommandProcessor _commandProcessor;
-        private readonly ILogger<TelegramMessageProcessor> _logger;
+        private readonly CommandProcessorService _commandProcessor;
+        private readonly ILogger<TelegramMessageProcessorService> _logger;
         private readonly TelegramAccessService _telegramAccessService;
         private readonly long _defaultGroupId;
         private readonly string _staticPath;
@@ -26,10 +26,10 @@ namespace LetChatBot
         private readonly string _imagesFolder;
         private readonly string _filesFolder;
 
-        public TelegramMessageProcessor(IConfiguration config,
+        public TelegramMessageProcessorService(IConfiguration config,
             MessagesRepository messagesRepository,
-            CommandProcessor commandProcessor,
-            ILogger<TelegramMessageProcessor> logger,
+            CommandProcessorService commandProcessor,
+            ILogger<TelegramMessageProcessorService> logger,
             TelegramAccessService telegramAccessService)
         {
             _messagesRepository = messagesRepository;

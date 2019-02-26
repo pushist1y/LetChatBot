@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using LetChatBot.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Telegram.Bot.Args;
 
@@ -9,58 +9,55 @@ namespace LetChatBot
 {
     public class LetChatBot
     {
-        private readonly DatabaseChatPoller _dbPoller;
+        private readonly DatabaseChatPollerService _dbPoller;
+        private readonly IServiceProvider _serviceProvider;
         private readonly TelegramAccessService _telegramAccessService;
-        private readonly TelegramToForumUserLinker _userLinker;
-        private readonly TelegramMessageProcessor _messageProcessor;
-        private readonly CommandProcessor _commandProcessor;
-        private readonly MessagesRepository _messagesRepository;
         private readonly ILogger<LetChatBot> _logger;
-
         private bool _isRunning;
         private CancellationTokenSource _cancellationTokenSource;
 
-        public LetChatBot(DatabaseChatPoller dbPoller,
+        public LetChatBot(DatabaseChatPollerService dbPoller,
+            IServiceProvider serviceProvider,
             TelegramAccessService telegramAccessService,
-                        TelegramToForumUserLinker userLinker,
-                        TelegramMessageProcessor messageProcessor,
-            CommandProcessor commandProcessor,
-            MessagesRepository messagesRepository,
             ILogger<LetChatBot> logger)
         {
             _dbPoller = dbPoller;
+            _serviceProvider = serviceProvider;
             _telegramAccessService = telegramAccessService;
-            _userLinker = userLinker;
             _dbPoller.DatabaseMessageReceived += OnDatabaseMessageReceived;
             _telegramAccessService.Client.OnMessage += TelegramAccessServiceOnMessage;
-            _telegramAccessService.Client.OnUpdate += ClientOnOnUpdate;
-            _messageProcessor = messageProcessor;
-            _commandProcessor = commandProcessor;
-            _messagesRepository = messagesRepository;
             _logger = logger;
             _logger.LogDebug("Initializing LetChatBot instance");
         }
 
-        private void ClientOnOnUpdate(object sender, UpdateEventArgs e)
-        {
-            _logger.LogDebug(e.Update.Message.Text);
-        }
 
         private async void TelegramAccessServiceOnMessage(object sender, MessageEventArgs e)
         {
-            await _messageProcessor.ProcessMessage(e.Message);
+            try
+            {
+                var scopeFactory = _serviceProvider.GetRequiredService<IServiceScopeFactory>();
+                using (var scope = scopeFactory.CreateScope())
+                {
+                    var messageProcessor = scope.ServiceProvider.GetRequiredService<MessageProcessorService>();
+                    await messageProcessor.ProcessTelegramMessage(e.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error on processing telegram message");
+            }
         }
 
         private async void OnDatabaseMessageReceived(object sender, DatabaseMessageReceivedArgs e)
         {
-            Console.WriteLine($"F [{e.Message.Username}]: {e.Message.Message}");
-
             try
             {
-                await _userLinker.ValidateAndLink(e.Message.UserId, e.Message.Message);
-                await _telegramAccessService.SendToGroupFromUsernameAsync(e.Message.Message.ConvertToTelegram(), e.Message.Username);
-                await _messagesRepository.SetMessageProcessedAsync(e.Message.MessageId);
-                await _commandProcessor.ProcessForumCommand(e.Message);
+                var scopeFactory = _serviceProvider.GetRequiredService<IServiceScopeFactory>();
+                using (var scope = scopeFactory.CreateScope())
+                {
+                    var messageProcessor = scope.ServiceProvider.GetRequiredService<MessageProcessorService>();
+                    await messageProcessor.ProcessForumMessage(e.Message);
+                }
             }
             catch (Exception exception)
             {

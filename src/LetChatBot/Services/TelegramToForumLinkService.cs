@@ -8,13 +8,13 @@ using Microsoft.Extensions.Configuration;
 
 namespace LetChatBot
 {
-    public class TelegramToForumUserLinker
+    public class TelegramToForumLinkService
     {
         private readonly ForumLinkRepository _linkRepository;
         private readonly TelegramAccessService _telegramAccessService;
         private readonly int _forumBotUserId;
 
-        public TelegramToForumUserLinker(ForumLinkRepository linkRepository, IConfiguration config, TelegramAccessService telegramAccessService)
+        public TelegramToForumLinkService(ForumLinkRepository linkRepository, IConfiguration config, TelegramAccessService telegramAccessService)
         {
             _linkRepository = linkRepository;
             _telegramAccessService = telegramAccessService;

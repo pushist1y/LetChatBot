@@ -7,13 +7,13 @@ using Microsoft.Extensions.Logging;
 
 namespace LetChatBot
 {
-    public class DatabaseChatPoller: HostedService
+    public class DatabaseChatPollerService: HostedService
     {
         private readonly MessagesRepository _messagesRepository;
-        private readonly ILogger<DatabaseChatPoller> _logger;
+        private readonly ILogger<DatabaseChatPollerService> _logger;
         public event EventHandler<DatabaseMessageReceivedArgs> DatabaseMessageReceived;
 
-        public DatabaseChatPoller(MessagesRepository messagesRepository, ILogger<DatabaseChatPoller> logger)
+        public DatabaseChatPollerService(MessagesRepository messagesRepository, ILogger<DatabaseChatPollerService> logger)
         {
             _messagesRepository = messagesRepository;
             _logger = logger;

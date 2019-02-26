@@ -17,15 +17,16 @@ namespace LetChatBot
                 options.EnableSensitiveDataLogging();
             }, ServiceLifetime.Transient);
 
-            services.AddSingleton<DatabaseChatPoller>();
+            services.AddSingleton<DatabaseChatPollerService>();
             services.AddSingleton<LetChatBot>();
             services.AddSingleton<TelegramAccessService>();
-            services.AddTransient<TelegramToForumUserLinker>();
-            services.AddTransient<TelegramMessageProcessor>();
+            services.AddTransient<TelegramToForumLinkService>();
+            services.AddTransient<TelegramMessageProcessorService>();
             services.AddTransient<ForumLinkRepository>();
             services.AddTransient<MessagesRepository>();
-            services.AddTransient<CommandProcessor>();
+            services.AddTransient<CommandProcessorService>();
             services.AddTransient<PiuRepository>();
+            services.AddTransient<MessageProcessorService>();
             services.Configure<TelegramOptions>(config);
         }
 
