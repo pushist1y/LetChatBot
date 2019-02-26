@@ -28,12 +28,11 @@ namespace LetChatBot
             _defaultGroupId = Convert.ToInt64(config["DefaultGroupId"]);
         }
 
+        private readonly string[] _piuCommands = {"пиу", "piu", "gbe", "зшг", "ня", "nya"};
+
         public async Task ProcessForumCommand(PhpbbChat message)
         {
-            if (message.Message.StartsWith("!пиу", true, CultureInfo.InvariantCulture) ||
-                message.Message.StartsWith("!piu", true, CultureInfo.InvariantCulture) ||
-                message.Message.StartsWith("!gbe", true, CultureInfo.InvariantCulture) ||
-                message.Message.StartsWith("!зшг", true, CultureInfo.InvariantCulture))
+            if (Regex.IsMatch(message.Message, $@"^\!({string.Join("|", _piuCommands)})\b", RegexOptions.IgnoreCase))
             {
                 await CommandPiu(message.Username);
             }
@@ -67,10 +66,7 @@ namespace LetChatBot
 
             if (message.Chat.Id == _defaultGroupId)
             {
-                if (message.Text.StartsWith("!пиу", true, CultureInfo.InvariantCulture) ||
-                    message.Text.StartsWith("!piu", true, CultureInfo.InvariantCulture) ||
-                    message.Text.StartsWith("!gbe", true, CultureInfo.InvariantCulture) ||
-                    message.Text.StartsWith("!зшг", true, CultureInfo.InvariantCulture))
+                if (Regex.IsMatch(message.Text, $@"^\!({string.Join("|", _piuCommands)})\b", RegexOptions.IgnoreCase))
                 {
                     var username = await _piuRepository.GetUserName(message.From.Id) ?? message.From.FullName();
                     await CommandPiu(username);
